@@ -1,5 +1,5 @@
 # Inflight
-
+[![Build Status](https://travis-ci.org/beeceej/inflight.svg?branch=master)](https://travis-ci.org/beeceej/inflight)
 
 Inflight is a simple package which abstracts away writing to and from S3. It handles retries (with an exponential back off algorithm), and can be configured to write to any S3 bucket.
 
