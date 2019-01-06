@@ -7,4 +7,5 @@ os:
 matrix:
   fast_finish: true
 script:
+- dep ensure -v
 - go test ./...
