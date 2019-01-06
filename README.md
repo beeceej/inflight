@@ -7,7 +7,7 @@ An Example of where this package could be useful is when the data you're working
 
 Example usage.
 
-## Step 1:
+## Lambda 1:
 ```go
 package main
 
@@ -17,7 +17,7 @@ func init() {
   bucket := os.Getenv("INFLIGHT_BUCKET")
   path := os.Getenv("INFLIGHT_PATH")
   s3 := //an s3 client
-  infl = inflight.NewInflight(Bucket(bucket), KeyPath(path), s3Client)
+  infl = inflight.NewInflight(Bucket(bucket), KeyPath(path), s3)
 }
 
 func handler(event interface{}) *inflight.Ref {
@@ -30,7 +30,7 @@ func main() {
 }
 ```
 
-## Step 2:
+## Lambda 2:
 ```go
 package main
 
@@ -40,7 +40,7 @@ func init() {
   bucket := os.Getenv("INFLIGHT_BUCKET")
   path := os.Getenv("INFLIGHT_PATH")
   s3 := //an s3 client
-  infl = inflight.NewInflight(Bucket(bucket), KeyPath(path), s3Client)
+  infl = inflight.NewInflight(Bucket(bucket), KeyPath(path), s3)
 }
 
 func handler(event *inflight.Ref) *inflight.Ref {
