@@ -1,0 +1,10 @@
+language: go
+go:
+  - '1.x'
+os:
+  - linux
+  - osx
+matrix:
+  fast_finish: true
+script:
+- go test ./...

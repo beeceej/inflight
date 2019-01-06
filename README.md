@@ -1,0 +1,64 @@
+# Inflight
+
+
+Inflight is a simple package which abstracts away writing to and from S3. It handles retries (with an exponential back off algorithm), and can be configured to write to any S3 bucket.
+
+An Example of where this package could be useful is when the data you're working with is too large to be manually passed through. This provides a simple way to ship references to data between functions in a state machine.
+
+Example usage.
+
+## Step 1:
+```go
+package main
+
+var infl *inflight.Infight
+
+func init() {
+  bucket := os.Getenv("INFLIGHT_BUCKET")
+  path := os.Getenv("INFLIGHT_PATH")
+  s3 := //an s3 client
+  infl = inflight.NewInflight(Bucket(bucket), KeyPath(path), s3Client)
+}
+
+func handler(event interface{}) *inflight.Ref {
+  dataWhichIsOverTheAwsLimit := bytes.NewReader(...)
+  return infl.Write(dataWhichIsOverTheAwsLimit)
+}
+
+func main() {
+  lambda.Start(handler)
+}
+```
+
+## Step 2:
+```go
+package main
+
+var infl *inflight.Infight
+
+func init() {
+  bucket := os.Getenv("INFLIGHT_BUCKET")
+  path := os.Getenv("INFLIGHT_PATH")
+  s3 := //an s3 client
+  infl = inflight.NewInflight(Bucket(bucket), KeyPath(path), s3Client)
+}
+
+func handler(event *inflight.Ref) *inflight.Ref {
+  b, err := infl.Get(event.Object)
+  // ...
+  // Do Some stuff with your data
+  // ...
+
+  dataWhichIsOverTheAwsLimit := doSomeStuffWithYourData(b)
+
+  // Write the data back
+  return infl.Write(dataWhichIsOverTheAwsLimit)
+}
+
+func main() {
+  lambda.Start(handler)
+}
+```
+
+
+
