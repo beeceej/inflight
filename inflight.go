@@ -86,7 +86,6 @@ func (i *Inflight) tryWriteToS3(data io.ReadSeeker, object string) func() error 
 // you would say inflight::Get("the-object.json")
 func (i *Inflight) Get(object string) ([]byte, error) {
 	b := &[]byte{}
-	// expBackOff := backoff.NewExponentialBackOff()
 
 	err := backoff.Retry(
 		i.tryReadFromS3(object, b),
