@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/awserr"
@@ -57,14 +58,15 @@ func TestNewInflightGivenBucketAndKeyExpectCorrectValues(t *testing.T) {
 	givenKeyPath := KeyPath("key/path")
 
 	expected := &Inflight{
-		Bucket:  Bucket("bucket"),
-		KeyPath: KeyPath("key/path"),
-		S3API:   s3,
+		Bucket:        Bucket("bucket"),
+		KeyPath:       KeyPath("key/path"),
+		S3API:         s3,
+		ObjectKeyFunc: ObjectKeyFunc(defaultObjectKeyFunc),
 	}
 
 	actual := NewInflight(givenBucket, givenKeyPath, s3)
 
-	if !reflect.DeepEqual(expected, actual) {
+	if cmp.Equal(expected, actual) {
 		t.Fail()
 	}
 }
@@ -165,6 +167,46 @@ func TestWriteGivenSomeBytesExpectRetryableErrorThenIdentifierReturned(t *testin
 	}
 
 	if actualRef.Object == "" {
+		t.Fail()
+	}
+}
+
+func TestWriteGivenSomeBytesButUUIDReturnsErrorExpectPermanentError(t *testing.T) {
+	givenBytes := []byte("hi")
+	givenBucket := Bucket("a_bucket")
+
+	givenKeyPath := KeyPath("a/key/path")
+	s3 := &mocks3PutObjectRequestRetryableErrorExpectSuccessAfterSecondAttempt{
+		givenBytes: givenBytes,
+	}
+
+	inflight := NewInflight(givenBucket, givenKeyPath, s3)
+	inflight.ObjectKeyFunc = func() (string, error) {
+		return "", errors.New("")
+	}
+
+	_, err := inflight.Write(bytes.NewReader(givenBytes))
+	if err == nil {
+		t.Fail()
+	}
+}
+
+func TestWriteGivenSomeBytesButUUIDReturnsErrorExpectStringFromGenerator(t *testing.T) {
+	givenBytes := []byte("hi")
+	givenBucket := Bucket("a_bucket")
+
+	givenKeyPath := KeyPath("a/key/path")
+	s3 := &mocks3PutObjectRequestRetryableErrorExpectSuccessAfterSecondAttempt{
+		givenBytes: givenBytes,
+	}
+
+	inflight := NewInflight(givenBucket, givenKeyPath, s3)
+	inflight.ObjectKeyFunc = func() (string, error) {
+		return "from_the_func", nil
+	}
+
+	ref, err := inflight.Write(bytes.NewReader(givenBytes))
+	if err != nil && ref.Object != "from_the_func" {
 		t.Fail()
 	}
 }

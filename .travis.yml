@@ -1,11 +1,6 @@
 language: go
-env:
-  - DEP_VERSION=0.5.0"
-before_install:
-  - curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
-  - chmod +x $GOPATH/bin/dep
 install:
-  - dep ensure -v
+  - go get ./...
 go:
   - '1.x'
 os:
@@ -13,7 +8,8 @@ os:
 matrix:
   fast_finish: true
 script:
-  - go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+  - make get-tools
+  - make test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
