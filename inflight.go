@@ -31,7 +31,7 @@ func defaultObjectKeyFunc() (string, error) {
 	if u, err = uuid.NewV4(); err != nil {
 		return "", err
 	}
-	return u.String(), err
+	return u.String(), nil
 }
 
 // Inflight is a structure which provides an interface to retrieving and writing data to s3,
