@@ -39,14 +39,19 @@ func NewInflight(bucket Bucket, keypath KeyPath, s3 s3iface.S3API) *Inflight {
 
 // Write will take the data given and attempt to put it in S3
 // It then will return the S3 URI back to the caller so that the data may be passed between callers
-func (i *Inflight) Write(data io.ReadSeeker) (*Ref, error) {
-	ref := &Ref{
-		Bucket: string(i.Bucket),
-		Path:   string(i.KeyPath),
-		Object: uuid.NewV4().String(),
+func (i *Inflight) Write(data io.ReadSeeker) (ref *Ref, err error) {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
 	}
 
-	err := backoff.Retry(
+	ref = &Ref{
+		Bucket: string(i.Bucket),
+		Path:   string(i.KeyPath),
+		Object: uuid.String(),
+	}
+
+	err = backoff.Retry(
 		i.tryWriteToS3(data, ref.Object),
 		backoff.NewExponentialBackOff(),
 	)
