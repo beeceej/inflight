@@ -168,3 +168,43 @@ func TestWriteGivenSomeBytesExpectRetryableErrorThenIdentifierReturned(t *testin
 		t.Fail()
 	}
 }
+
+func TestWriteGivenSomeBytesButUUIDReturnsErrorExpectPermanentError(t *testing.T) {
+	givenBytes := []byte("hi")
+	givenBucket := Bucket("a_bucket")
+
+	givenKeyPath := KeyPath("a/key/path")
+	s3 := &mocks3PutObjectRequestRetryableErrorExpectSuccessAfterSecondAttempt{
+		givenBytes: givenBytes,
+	}
+
+	inflight := NewInflight(givenBucket, givenKeyPath, s3)
+	inflight.ObjectKeyFunc = func() (string, error) {
+		return "", errors.New("")
+	}
+
+	_, err := inflight.Write(bytes.NewReader(givenBytes))
+	if err == nil {
+		t.Fail()
+	}
+}
+
+func TestWriteGivenSomeBytesButUUIDReturnsErrorExpectStringFromGenerator(t *testing.T) {
+	givenBytes := []byte("hi")
+	givenBucket := Bucket("a_bucket")
+
+	givenKeyPath := KeyPath("a/key/path")
+	s3 := &mocks3PutObjectRequestRetryableErrorExpectSuccessAfterSecondAttempt{
+		givenBytes: givenBytes,
+	}
+
+	inflight := NewInflight(givenBucket, givenKeyPath, s3)
+	inflight.ObjectKeyFunc = func() (string, error) {
+		return "from_the_func", nil
+	}
+
+	ref, err := inflight.Write(bytes.NewReader(givenBytes))
+	if err != nil && ref.Object != "from_the_func" {
+		t.Fail()
+	}
+}

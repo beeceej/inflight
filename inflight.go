@@ -20,35 +20,54 @@ type (
 	KeyPath string
 )
 
+// ObjectKeyFunc is a function which generates the string to be used as the object key.
+type ObjectKeyFunc func() (string, error)
+
+func defaultObjectKeyFunc() (string, error) {
+	var (
+		u   uuid.UUID
+		err error
+	)
+	if u, err = uuid.NewV4(); err != nil {
+		return "", err
+	}
+	return u.String(), err
+}
+
 // Inflight is a structure which provides an interface to retrieving and writing data to s3,
 // it doesn't care about what data you're writing, just provides an easy way to get to it
 type Inflight struct {
 	s3iface.S3API
 	Bucket  Bucket
 	KeyPath KeyPath
+
+	// ObjectKeyFunc will be called when Inflight#Write(io.ReadSeeker) is invoked.
+	// The data will be given the name that this function generates.
+	ObjectKeyFunc ObjectKeyFunc
 }
 
 // NewInflight Creates a reference to an Inflight struct
 func NewInflight(bucket Bucket, keypath KeyPath, s3 s3iface.S3API) *Inflight {
 	return &Inflight{
-		Bucket:  bucket,
-		KeyPath: keypath,
-		S3API:   s3,
+		Bucket:        bucket,
+		KeyPath:       keypath,
+		S3API:         s3,
+		ObjectKeyFunc: defaultObjectKeyFunc,
 	}
 }
 
 // Write will take the data given and attempt to put it in S3
 // It then will return the S3 URI back to the caller so that the data may be passed between callers
 func (i *Inflight) Write(data io.ReadSeeker) (ref *Ref, err error) {
-	uuid, err := uuid.NewV4()
+	objID, err := i.ObjectKeyFunc()
 	if err != nil {
-		return nil, err
+		return nil, backoff.Permanent(err)
 	}
 
 	ref = &Ref{
 		Bucket: string(i.Bucket),
 		Path:   string(i.KeyPath),
-		Object: uuid.String(),
+		Object: objID,
 	}
 
 	err = backoff.Retry(
