@@ -10,6 +10,14 @@ matrix:
 script:
   - make get-tools
   - make test
-
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+before_deploy:
+  - make package
+deploy:
+  provider: releases
+  api_key: "$GITHUB_TOKEN"
+  file: "inflight-$TRAVIS_TAG.tar.gz"
+  skip_cleanup: true
+  on:
+    tags: true
