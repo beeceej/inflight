@@ -52,7 +52,7 @@ func NewInflight(bucket Bucket, keypath KeyPath, s3 s3iface.S3API) *Inflight {
 		Bucket:        bucket,
 		KeyPath:       keypath,
 		S3API:         s3,
-		ObjectKeyFunc: defaultObjectKeyFunc,
+		ObjectKeyFunc: ObjectKeyFunc(defaultObjectKeyFunc),
 	}
 }
 

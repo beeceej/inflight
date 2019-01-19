@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/awserr"
@@ -57,14 +58,15 @@ func TestNewInflightGivenBucketAndKeyExpectCorrectValues(t *testing.T) {
 	givenKeyPath := KeyPath("key/path")
 
 	expected := &Inflight{
-		Bucket:  Bucket("bucket"),
-		KeyPath: KeyPath("key/path"),
-		S3API:   s3,
+		Bucket:        Bucket("bucket"),
+		KeyPath:       KeyPath("key/path"),
+		S3API:         s3,
+		ObjectKeyFunc: ObjectKeyFunc(defaultObjectKeyFunc),
 	}
 
 	actual := NewInflight(givenBucket, givenKeyPath, s3)
 
-	if !reflect.DeepEqual(expected, actual) {
+	if cmp.Equal(expected, actual) {
 		t.Fail()
 	}
 }
