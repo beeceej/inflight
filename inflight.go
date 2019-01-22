@@ -90,7 +90,7 @@ func (i *Inflight) tryWriteToS3(data io.ReadSeeker, object string) func() error 
 			Bucket:      aws.String(bucket),
 			Key:         aws.String(filepath.Join(keyPath, object)),
 			Body:        data,
-			ContentType: aws.String("application/json"),
+			ContentType: aws.String("binary/octet-stream"),
 		})
 
 		_, err := req.Send()
