@@ -49,7 +49,11 @@ func (m *mocks3PutObjectRequestRetryableErrorExpectSuccessAfterSecondAttempt) Pu
 	}
 
 	return s3.PutObjectRequest{
-		Request: &aws.Request{Data: &s3.PutObjectOutput{}, Error: nil}}
+		Request: &aws.Request{
+			Data:  &s3.PutObjectOutput{},
+			Error: nil,
+		},
+	}
 }
 
 func TestNewInflightGivenBucketAndKeyExpectCorrectValues(t *testing.T) {
@@ -89,8 +93,7 @@ func TestGetGivenObjectNotExistExpectError(t *testing.T) {
 func (m mocks3GetObjectRequestReturnBytes) GetObjectRequest(*s3.GetObjectInput) s3.GetObjectRequest {
 	return s3.GetObjectRequest{
 		Request: &aws.Request{Data: &s3.GetObjectOutput{
-			Body: ioutil.NopCloser(bytes.NewReader(m.bytesToReturn)),
-		}, Error: nil},
+			Body: ioutil.NopCloser(bytes.NewReader(m.bytesToReturn))}, Error: nil},
 	}
 }
 func TestGetGivenObjectExistExpectCorrectBytes(t *testing.T) {
@@ -115,15 +118,14 @@ func (m *mocks3GetObjectRequestRetryableErrorReturnBytesAfterSecondAttempt) GetO
 		m.times++
 		return s3.GetObjectRequest{
 			Request: &aws.Request{Data: &s3.GetObjectOutput{
-				Body: ioutil.NopCloser(bytes.NewReader([]byte{})),
-			}, Error: awserr.New("RequestTimeout", "", errors.New(""))},
+				Body: ioutil.NopCloser(bytes.NewReader([]byte{}))}, Error: awserr.New("RequestTimeout", "", errors.New(""))},
 		}
 	}
 
 	return s3.GetObjectRequest{
 		Request: &aws.Request{Data: &s3.GetObjectOutput{
-			Body: ioutil.NopCloser(bytes.NewReader(m.bytesToReturn)),
-		}, Error: nil},
+			Body: ioutil.NopCloser(bytes.NewReader(m.bytesToReturn))},
+			Error: nil},
 	}
 }
 func TestGetGivenObjectExistExpectRetryableErrorThenBytesReturned(t *testing.T) {
@@ -153,7 +155,7 @@ func TestWriteGivenSomeBytesExpectRetryableErrorThenIdentifierReturned(t *testin
 	}
 
 	inflight := NewInflight(givenBucket, givenKeyPath, s3)
-	actualRef, err := inflight.Write(bytes.NewReader(givenBytes))
+	actualRef, err := inflight.Write(givenBytes)
 	if err != nil {
 		t.Fail()
 	}
@@ -181,11 +183,11 @@ func TestWriteGivenSomeBytesButUUIDReturnsErrorExpectPermanentError(t *testing.T
 	}
 
 	inflight := NewInflight(givenBucket, givenKeyPath, s3)
-	inflight.ObjectKeyFunc = func() (string, error) {
+	inflight.ObjectKeyFunc = func(b []byte) (string, error) {
 		return "", errors.New("")
 	}
 
-	_, err := inflight.Write(bytes.NewReader(givenBytes))
+	_, err := inflight.Write(givenBytes)
 	if err == nil {
 		t.Fail()
 	}
@@ -201,11 +203,11 @@ func TestWriteGivenSomeBytesButUUIDReturnsErrorExpectStringFromGenerator(t *test
 	}
 
 	inflight := NewInflight(givenBucket, givenKeyPath, s3)
-	inflight.ObjectKeyFunc = func() (string, error) {
+	inflight.ObjectKeyFunc = func(b []byte) (string, error) {
 		return "from_the_func", nil
 	}
 
-	ref, err := inflight.Write(bytes.NewReader(givenBytes))
+	ref, err := inflight.Write(givenBytes)
 	if err != nil && ref.Object != "from_the_func" {
 		t.Fail()
 	}
