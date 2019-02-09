@@ -1,6 +1,9 @@
 package inflight
 
 import (
+	"bytes"
+	"crypto/md5"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -9,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/s3iface"
 	"github.com/cenkalti/backoff"
-	uuid "github.com/satori/go.uuid"
 )
 
 type (
@@ -18,20 +20,24 @@ type (
 
 	// KeyPath  is a string value which represents the s3 name space objects will be written to
 	KeyPath string
+
+	// ObjectKeyFunc is a function which generates the string to be used as the object key.
+	ObjectKeyFunc func([]byte) (string, error)
 )
 
-// ObjectKeyFunc is a function which generates the string to be used as the object key.
-type ObjectKeyFunc func() (string, error)
+func defaultObjectKeyFunc(b []byte) (string, error) {
+	return fmt.Sprintf("%x", md5.Sum(b)), nil
+}
 
-func defaultObjectKeyFunc() (string, error) {
-	var (
-		u   uuid.UUID
-		err error
-	)
-	if u, err = uuid.NewV4(); err != nil {
-		return "", err
-	}
-	return u.String(), nil
+// Ref represents the path to an object in S3 broken down by bucket, Path, and Object
+// Bucket = "my-s3-bucket"
+// Path = "some/path/within"
+// Object = "an-object-in-s3.json"
+// s3://my-s3-bucket/some/path/within/an-object-in-s3.json
+type Ref struct {
+	Bucket string `json:"bucket"`
+	Path   string `json:"path"`
+	Object string `json:"object"`
 }
 
 // Inflight is a structure which provides an interface to retrieving and writing data to s3,
@@ -58,8 +64,8 @@ func NewInflight(bucket Bucket, keypath KeyPath, s3 s3iface.S3API) *Inflight {
 
 // Write will take the data given and attempt to put it in S3
 // It then will return the S3 URI back to the caller so that the data may be passed between callers
-func (i *Inflight) Write(data io.ReadSeeker) (ref *Ref, err error) {
-	objID, err := i.ObjectKeyFunc()
+func (i *Inflight) Write(data []byte) (ref *Ref, err error) {
+	objID, err := i.ObjectKeyFunc(data)
 	if err != nil {
 		return nil, backoff.Permanent(err)
 	}
@@ -71,7 +77,7 @@ func (i *Inflight) Write(data io.ReadSeeker) (ref *Ref, err error) {
 	}
 
 	err = backoff.Retry(
-		i.tryWriteToS3(data, ref.Object),
+		i.tryWriteToS3(bytes.NewReader(data), ref.Object),
 		backoff.NewExponentialBackOff(),
 	)
 
