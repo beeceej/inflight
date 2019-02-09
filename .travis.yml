@@ -8,8 +8,8 @@ os:
 matrix:
   fast_finish: true
 script:
-  - make get-tools
-  - make test
+  - env GO111MODULE=on make get-tools
+  - env GO111MODULE=on make test
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 before_deploy:
