@@ -82,6 +82,7 @@ func (m mocks3GetObjectRequestError) GetObjectRequest(*s3.GetObjectInput) s3.Get
 		}, Error: errors.New("")},
 	}
 }
+
 func TestGetGivenObjectNotExistExpectError(t *testing.T) {
 	inflight := NewInflight(Bucket(""), KeyPath(""), new(mocks3GetObjectRequestError))
 	_, err := inflight.Get("object")
@@ -96,6 +97,7 @@ func (m mocks3GetObjectRequestReturnBytes) GetObjectRequest(*s3.GetObjectInput) 
 			Body: ioutil.NopCloser(bytes.NewReader(m.bytesToReturn))}, Error: nil},
 	}
 }
+
 func TestGetGivenObjectExistExpectCorrectBytes(t *testing.T) {
 	expectedBytes := []byte("Hello, World!")
 	inflight := NewInflight(Bucket(""), KeyPath(""), &mocks3GetObjectRequestReturnBytes{

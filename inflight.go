@@ -111,14 +111,19 @@ func (i *Inflight) tryWriteToS3(data io.ReadSeeker, object string) func() error 
 	}
 }
 
+type getter struct {
+	*Inflight
+	b []byte
+}
+
 // Get will retrieve the Object at the Bucket and KeyPath from S3.Get
 // For instance, if you need the object at `cool-bucket/a/cool/key-path/the-object.json`
 // you would say inflight::Get("the-object.json")
 func (i *Inflight) Get(object string) ([]byte, error) {
-	b := &[]byte{}
-
+	g := &getter{Inflight: i}
+	g.Inflight = i
 	err := backoff.Retry(
-		i.tryReadFromS3(object, b),
+		g.tryReadFromS3(object),
 		backoff.NewExponentialBackOff(),
 	)
 
@@ -127,10 +132,10 @@ func (i *Inflight) Get(object string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	return *b, err
+	return g.b, err
 }
 
-func (i *Inflight) tryReadFromS3(object string, data *[]byte) func() error {
+func (i *getter) tryReadFromS3(object string) func() error {
 	bucket := string(i.Bucket)
 	keyPath := string(i.KeyPath)
 
@@ -154,7 +159,7 @@ func (i *Inflight) tryReadFromS3(object string, data *[]byte) func() error {
 		}
 		defer res.Body.Close()
 
-		*data = append(*data, b...)
+		i.b = b
 		return nil
 	}
 }
