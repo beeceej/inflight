@@ -121,7 +121,7 @@ type getter struct {
 // you would say inflight::Get("the-object.json")
 func (i *Inflight) Get(object string) ([]byte, error) {
 	g := &getter{Inflight: i}
-	g.Inflight = i
+
 	err := backoff.Retry(
 		g.tryReadFromS3(object),
 		backoff.NewExponentialBackOff(),
@@ -135,12 +135,12 @@ func (i *Inflight) Get(object string) ([]byte, error) {
 	return g.b, err
 }
 
-func (i *getter) tryReadFromS3(object string) func() error {
-	bucket := string(i.Bucket)
-	keyPath := string(i.KeyPath)
-
+func (g *getter) tryReadFromS3(object string) func() error {
 	return func() error {
-		req := i.GetObjectRequest(&s3.GetObjectInput{
+		bucket := string(g.Bucket)
+		keyPath := string(g.KeyPath)
+
+		req := g.GetObjectRequest(&s3.GetObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(filepath.Join(keyPath, object)),
 		})
@@ -159,7 +159,7 @@ func (i *getter) tryReadFromS3(object string) func() error {
 		}
 		defer res.Body.Close()
 
-		i.b = b
+		g.b = b
 		return nil
 	}
 }
